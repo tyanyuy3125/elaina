@@ -1,0 +1,58 @@
+flat int;
+flat uint;
+flat float;
+flat bool;
+flat double;
+flat PCGSampler;
+
+flat Vector2f;
+flat Vector3f;
+flat Vector2i;
+flat Color;
+
+struct PixelState {
+	Color solution;
+	PCGSampler sampler;
+};
+
+struct EvaluationPointWorkItem {
+    Vector2f point;
+    
+    uint depth;
+    uint pixelId;
+
+    Color thp;
+
+    bool isOnNeumannBoundary;
+    Vector2f neumannNormal;
+};
+
+struct InShellPointWorkItem {
+    Vector2f point;
+
+    uint depth;
+    uint pixelId;
+
+    Color thp;
+
+    float R_D;
+
+    int side;
+    Vector2i indices;
+    float uv;
+};
+
+struct OutShellPointWorkItem {
+    Vector2f point;
+
+    uint depth;
+    uint pixelId;
+    
+    Color thp;
+
+    float R_D;
+    float R_B;
+
+    bool isOnNeumannBoundary;
+    Vector2f neumannNormal;
+};
