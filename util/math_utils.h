@@ -1,0 +1,326 @@
+#pragma once
+
+#include "core/common.h"
+
+#include "util/check.h"
+#include "util/hash.h"
+
+ELAINA_NAMESPACE_BEGIN
+
+namespace utils {
+/*******************************************************
+ * Numerical
+ ********************************************************/
+
+template <class To, class From>
+ELAINA_CALLABLE
+	typename std::enable_if_t<sizeof(To) == sizeof(From) && std::is_trivially_copyable_v<From> &&
+								  std::is_trivially_copyable_v<To>, To>
+	bit_cast(const From &src) noexcept {
+	static_assert(std::is_trivially_constructible_v<To>,
+				  "This implementation requires the destination type to be trivially "
+				  "constructible");
+	To dst;
+	std::memcpy(&dst, &src, sizeof(To));
+	return dst;
+}
+
+ELAINA_CALLABLE uint64_t floatToBits(double f) {
+#ifdef ELAINA_DEVICE_CODE
+	return __double_as_longlong(f);
+#else
+	return bit_cast<uint64_t>(f);
+#endif
+}
+
+ELAINA_CALLABLE double bitsToFloat(uint64_t ui) {
+#ifdef ELAINA_DEVICE_CODE
+	return __longlong_as_double(ui);
+#else
+	return bit_cast<double>(ui);
+#endif
+}
+
+ELAINA_CALLABLE float nextFloatUp(float v) {
+	// Handle infinity and negative zero for _NextFloatUp()_
+	if (isinf(v) && v > 0.f)
+		return v;
+	if (v == -0.f) v = 0.f;
+	// Advance _v_ to next higher float
+	uint32_t ui = floatToBits(v);
+	if (v >= 0) ++ui;
+	else --ui;
+	return bitsToFloat(ui);
+}
+
+ELAINA_CALLABLE float nextFloatDown(float v) {
+	// Handle infinity and positive zero for _NextFloatDown()_
+	if (isinf(v) && v < 0.f)
+		return v;
+	if (v == 0.f) v = -0.f;
+	uint32_t ui = floatToBits(v);
+	if (v > 0) --ui;
+	else ++ui;
+	return bitsToFloat(ui);
+}
+	
+/*******************************************************
+ * colors
+ ********************************************************/
+ELAINA_CALLABLE float luminance(Color3f color) {
+	return dot(Vector3f(color), Vector3f(0.299, 0.587, 0.114));
+}
+
+ELAINA_CALLABLE float srgb2linear(float sRGBColor) {
+	if (sRGBColor <= 0.04045f)
+		return sRGBColor / 12.92f;
+	else
+		return pow((sRGBColor + 0.055f) / 1.055f, 2.4f);
+}
+
+ELAINA_CALLABLE Color srgb2linear(Color sRGBColor) {
+	Color ret{};
+	for (int ch = 0; ch < Color::dim; ch++)
+		ret[ch] = srgb2linear(sRGBColor[ch]);
+	return ret;
+}
+
+ELAINA_CALLABLE float linear2srgb(float linearColor) {
+	if (linearColor <= 0.0031308)
+		return linearColor * 12.92f;
+	else
+		return 1.055f * pow(linearColor, 1.f / 2.4f) - 0.055f;
+}
+
+ELAINA_CALLABLE Color linear2srgb(Color linearColor) {
+	Color ret{};
+	for (int ch = 0; ch < Color::dim; ch++)
+		ret[ch] = linear2srgb(linearColor[ch]);
+	return ret;
+}
+
+/*******************************************************
+ * numbers
+ ********************************************************/
+template <typename T> ELAINA_CALLABLE void extendedGCD(T a, T b, T *x, T *y) {
+	if (b == 0) {
+		*x = 1;
+		*y = 0;
+		return;
+	}
+	T d = a / b, xp, yp;
+	extendedGCD(b, a % b, &xp, &yp);
+	*x = yp;
+	*y = xp - (d * yp);
+}
+
+template <typename T> ELAINA_CALLABLE T multiplicativeInverse(T a, T n) {
+	T x, y;
+	extendedGCD(a, n, &x, &y);
+	return x % n;
+}
+
+template <typename T> ELAINA_CALLABLE T lerp(T x, T y, float weight) {
+	return (1.f - weight) * x + weight * y;
+}
+
+/*******************************************************
+ * vectors and coordinates
+ ********************************************************/
+
+template <typename T> ELAINA_CALLABLE float squaredLength(T v) {
+	float l = length(v);
+	return l * l;
+}
+
+ELAINA_CALLABLE float sphericalTriangleArea(Vector3f a, Vector3f b, Vector3f c) {
+	return abs(2 * atan2(dot(a, cross(b, c)), 1 + dot(a, b) + dot(a, c) + dot(b, c)));
+}
+
+// generate a perpendicular vector which is orthogonal to the given vector
+ELAINA_CALLABLE Vector3f getPerpendicular(const Vector3f &u) {
+	Vector3f a	 = abs(u);
+	uint32_t uyx = (a[0] - a[1]) < 0 ? 1 : 0;
+	uint32_t uzx = (a[0] - a[2]) < 0 ? 1 : 0;
+	uint32_t uzy = (a[1] - a[2]) < 0 ? 1 : 0;
+	uint32_t xm	 = uyx & uzx;
+	uint32_t ym	 = (1 ^ xm) & uzy;
+	uint32_t zm	 = 1 ^ (xm | ym); // 1 ^ (xm & ym)
+	Vector3f v	 = normalize(cross(u, Vector3f(xm, ym, zm)));
+	return v;
+}
+
+ELAINA_CALLABLE Vector2f getPerpendicular(const Vector2f& v) {
+    Vector2f perp(-v[1], v[0]);
+    return perp.normalized();
+}
+
+// world => y-up
+ELAINA_CALLABLE Vector2f worldToLatLong(const Vector3f &dir) {
+	Vector3f p = normalize(dir);
+	Vector2f uv;
+	uv[0] = atan2(p[0], -p[2]) / M_2PI + 0.5f;
+	uv[1] = acos(p[1]) * M_INV_PI;
+	return uv;
+}
+
+/// <param name="latlong"> in [0, 1]*[0, 1] </param>
+ELAINA_CALLABLE Vector3f latlongToWorld(Vector2f latlong) {
+	float phi	   = M_PI * (2.f * saturate(latlong[0]) - 1.f);
+	float theta	   = M_PI * saturate(latlong[1]);
+	float sinTheta = sin(theta);
+	float cosTheta = cos(theta);
+	float sinPhi   = sin(phi);
+	float cosPhi   = cos(phi);
+	return { sinTheta * sinPhi, cosTheta, -sinTheta * cosPhi };
+}
+
+// caetesian, or local frame => z-up
+// @returns
+//	theta: [0, pi], phi: [0, 2pi]
+ELAINA_CALLABLE Vector2f cartesianToSpherical(const Vector3f &v) {
+	/* caution! acos(val) produces NaN when val is out of [-1, 1]. */
+	const Vector3f vn = v.normalized();
+	Vector2f sph{ acos(vn[2]), atan2(vn[1], vn[0]) };
+	if (sph[1] < 0)
+		sph[1] += M_2PI;
+	return sph;
+}
+
+ELAINA_CALLABLE Vector2f cartesianToSphericalNormalized(const Vector3f &v) {
+	Vector2f sph = cartesianToSpherical(v);
+	return { float(sph[0] / M_PI), float(sph[1] / M_2PI) };
+}
+
+/// <param name="sph">\phi in [0, 2pi] and \theta in [0, pi]</param>
+ELAINA_CALLABLE Vector3f sphericalToCartesian(float theta, float phi) {
+	float sinTheta = sin(theta);
+	float cosTheta = cos(theta);
+	float sinPhi   = sin(phi);
+	float cosPhi   = cos(phi);
+	return {
+		sinTheta * cosPhi,
+		sinTheta * sinPhi,
+		cosTheta,
+	};
+}
+
+ELAINA_CALLABLE Vector3f sphericalToCartesian(float sinTheta, float cosTheta, float phi) {
+	return Vector3f(sinTheta * cos(phi), sinTheta * sin(phi), cosTheta);
+}
+
+ELAINA_CALLABLE Vector3f sphericalToCartesian(const Vector2f sph) {
+	return sphericalToCartesian(sph[0], sph[1]);
+}
+
+ELAINA_CALLABLE float sphericalTheta(const Vector3f &v) { return acos(clamp(v[2], -1.f, 1.f)); }
+
+ELAINA_CALLABLE float sphericalPhi(const Vector3f &v) {
+	float p = atan2(v[1], v[0]);
+	return (p < 0) ? (p + 2 * M_PI) : p;
+}
+
+/*******************************************************
+ * bitmask operations
+ ********************************************************/
+ELAINA_CALLABLE uint32_t ReverseBits32(uint32_t n) {
+#ifdef __CUDA_ARCH__
+	return __brev(n);
+#else
+	n = (n << 16) | (n >> 16);
+	n = ((n & 0x00ff00ff) << 8) | ((n & 0xff00ff00) >> 8);
+	n = ((n & 0x0f0f0f0f) << 4) | ((n & 0xf0f0f0f0) >> 4);
+	n = ((n & 0x33333333) << 2) | ((n & 0xcccccccc) >> 2);
+	n = ((n & 0x55555555) << 1) | ((n & 0xaaaaaaaa) >> 1);
+	return n;
+#endif
+}
+
+ELAINA_CALLABLE uint64_t ReverseBits64(uint64_t n) {
+#ifdef __CUDA_ARCH__
+	return __brevll(n);
+#else
+	uint64_t n0 = ReverseBits32((uint32_t) n);
+	uint64_t n1 = ReverseBits32((uint32_t) (n >> 32));
+	return (n0 << 32) | n1;
+#endif
+}
+
+// https://fgiesen.wordpress.com/2009/12/13/decoding-morton-codes/
+// updated to 64 bits.
+ELAINA_CALLABLE uint64_t LeftShift2(uint64_t x) {
+	x &= 0xffffffff;
+	x = (x ^ (x << 16)) & 0x0000ffff0000ffff;
+	x = (x ^ (x << 8)) & 0x00ff00ff00ff00ff;
+	x = (x ^ (x << 4)) & 0x0f0f0f0f0f0f0f0f;
+	x = (x ^ (x << 2)) & 0x3333333333333333;
+	x = (x ^ (x << 1)) & 0x5555555555555555;
+	return x;
+}
+
+ELAINA_CALLABLE uint64_t EncodeMorton2(uint32_t x, uint32_t y) {
+	return (LeftShift2(y) << 1) | LeftShift2(x);
+}
+
+ELAINA_CALLABLE uint32_t LeftShift3(uint32_t x) {
+	DCHECK_LE(x, (1u << 10));
+	if (x == (1 << 10))
+		--x;
+	x = (x | (x << 16)) & 0b00000011000000000000000011111111;
+	// x = ---- --98 ---- ---- ---- ---- 7654 3210
+	x = (x | (x << 8)) & 0b00000011000000001111000000001111;
+	// x = ---- --98 ---- ---- 7654 ---- ---- 3210
+	x = (x | (x << 4)) & 0b00000011000011000011000011000011;
+	// x = ---- --98 ---- 76-- --54 ---- 32-- --10
+	x = (x | (x << 2)) & 0b00001001001001001001001001001001;
+	// x = ---- 9--8 --7- -6-- 5--4 --3- -2-- 1--0
+	return x;
+}
+
+ELAINA_CALLABLE uint32_t EncodeMorton3(float x, float y, float z) {
+	DCHECK_GE(x, 0);
+	DCHECK_GE(y, 0);
+	DCHECK_GE(z, 0);
+	return (LeftShift3(z) << 2) | (LeftShift3(y) << 1) | LeftShift3(x);
+}
+
+ELAINA_CALLABLE uint32_t Compact1By1(uint64_t x) {
+	// TODO: as of Haswell, the PEXT instruction could do all this in a
+	// single instruction.
+	// x = -f-e -d-c -b-a -9-8 -7-6 -5-4 -3-2 -1-0
+	x &= 0x5555555555555555;
+	// x = --fe --dc --ba --98 --76 --54 --32 --10
+	x = (x ^ (x >> 1)) & 0x3333333333333333;
+	// x = ---- fedc ---- ba98 ---- 7654 ---- 3210
+	x = (x ^ (x >> 2)) & 0x0f0f0f0f0f0f0f0f;
+	// x = ---- ---- fedc ba98 ---- ---- 7654 3210
+	x = (x ^ (x >> 4)) & 0x00ff00ff00ff00ff;
+	// x = ---- ---- ---- ---- fedc ba98 7654 3210
+	x = (x ^ (x >> 8)) & 0x0000ffff0000ffff;
+	// ...
+	x = (x ^ (x >> 16)) & 0xffffffff;
+	return x;
+}
+
+ELAINA_CALLABLE void DecodeMorton2(uint64_t v, uint32_t *x, uint32_t *y) {
+	*x = Compact1By1(v);
+	*y = Compact1By1(v >> 1);
+}
+
+ELAINA_CALLABLE uint32_t Compact1By2(uint32_t x) {
+	x &= 0x09249249;				  // x = ---- 9--8 --7- -6-- 5--4 --3- -2-- 1--0
+	x = (x ^ (x >> 2)) & 0x030c30c3;  // x = ---- --98 ---- 76-- --54 ---- 32-- --10
+	x = (x ^ (x >> 4)) & 0x0300f00f;  // x = ---- --98 ---- ---- 7654 ---- ---- 3210
+	x = (x ^ (x >> 8)) & 0xff0000ff;  // x = ---- --98 ---- ---- ---- ---- 7654 3210
+	x = (x ^ (x >> 16)) & 0x000003ff; // x = ---- ---- ---- ---- ---- --98 7654 3210
+	return x;
+}
+
+template <typename T>
+ELAINA_CALLABLE int sign(T val) {
+	return (T(0) < val) - (val < T(0));
+}
+
+} // namespace utils
+
+ELAINA_NAMESPACE_END

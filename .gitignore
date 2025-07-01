@@ -1,0 +1,7 @@
+build
+.vscode
+vcpkg_installed
+output*.png
+output*.pdf
+output*.svg
+exp*

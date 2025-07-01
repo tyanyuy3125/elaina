@@ -1,0 +1,73 @@
+{
+    "dimensionality": 2,
+    "base_path": "./exp/",
+    "exp_name": "ladybug_gt",
+    "integrator": {
+        "setting": {
+            "debugPixel": 0,
+            "frameSize": [
+                1024,
+                1024
+            ],
+            "maxWalkingDepth": 64,
+            "samplesPerPixel": 65536,
+            "saveSppMetricsDuration": -1,
+            "saveSppMetricsUntil": -1,
+            "saveTimeMetricsDuration": -1,
+            "epsilonShell": 1
+        },
+        "type": "uniform",
+        "channels": [
+            "SOLUTION"
+        ]
+    },
+    "export": [
+        {
+            "type": "image",
+            "channel": "SOLUTION",
+            "file_name": "solution"
+        },
+        {
+            "type": "energy",
+            "tone": "IDL_RDBU",
+            "channel": "SOLUTION",
+            "file_name": "solution_energy_rdbu"
+        },
+        {
+            "type": "energy",
+            "tone": "MATLAB_JET",
+            "channel": "SOLUTION",
+            "file_name": "solution_energy_jet"
+        }
+    ],
+    "scene": {
+        "aabb": {
+            "max": [
+                600.0,
+                600.0
+            ],
+            "min": [
+                -100.0,
+                -100.0
+            ]
+        },
+        "evaluation_grid": {
+            "mData": {
+                "pos": [
+                    250.0,
+                    250.0
+                ],
+                "scale": 250,
+                "up": [
+                    -1.0,
+                    0.0
+                ]
+            }
+        },
+        "mesh": {
+            "dirichlet_path": "data/ladybug/model.obj",
+            "vertex_color_dirichlet_path": "data/ladybug/color.json",
+            "neumann_path": "data/ladybug/boundary.obj"
+        }
+    }
+}

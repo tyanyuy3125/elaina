@@ -1,0 +1,45 @@
+flat int;
+flat uint;
+flat float;
+flat bool;
+flat double;
+
+flat Vector2f;
+flat Vector3f;
+flat Color;
+flat Color3f;
+
+struct UniformWalkWorkItem {
+	uint itemId;
+};
+
+struct GuidedInferenceWorkItem {
+	uint itemId;
+};
+
+struct WalkRecordItem {
+	Color solution;
+    Vector3f pos;
+    Vector3f dir;
+	float dirPdf;
+
+	Color thp;
+
+	bool isOnNeumannBoundary;
+	Vector3f neumannBoundaryNormal;
+};
+
+struct GuidedPixelState {
+	WalkRecordItem records[MAX_TRAIN_DEPTH + 1];
+	uint curDepth;
+};
+
+struct GuidedInput {
+	Vector3f pos;
+};
+
+struct GuidedOutput {
+    Color solution;
+	Vector3f dir;
+	float dirPdf;
+};
