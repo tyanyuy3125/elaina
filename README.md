@@ -72,10 +72,16 @@ Part of the project's code is borrowed from the implementation of NPM ([Project 
 ## Citation
 
 ```bibtex
-@inproceedings{huang2025guiding,
+@article{huang2025guiding,
   title={Guiding-Based Importance Sampling for Walk on Stars},
   author={Huang, Tianyu and Ling, Jingwang and Zhao, Shuang and Xu, Feng},
-  booktitle={SIGGRAPH 2025 Conference Papers},
-  year={2025}
+  journal = {Proceedings of the ACM SIGGRAPH Conference Papers (SIGGRAPH Conference Papers '25)},
+  year = {2025},
+  isbn = {979-8-4007-1540-2/2025/08},
+  location = {Vancouver, BC, Canada},
+  numpages = {12},
+  doi = {10.1145/3721238.3730713},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA}
 }
 ```
