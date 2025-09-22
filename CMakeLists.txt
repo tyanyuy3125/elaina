@@ -202,41 +202,47 @@ add_executable (elaina::soac ALIAS soac)
 target_compile_options(soac PUBLIC ${CMAKE_CXX_FLAGS})
 set_target_properties (soac PROPERTIES OUTPUT_NAME soac)
 
+set(SOA_INCLUDE_GUIDED_DIR "${CMAKE_CURRENT_BINARY_DIR}/include/integrator/guided")
+set(SOA_INCLUDE_UNIFORM_DIR "${CMAKE_CURRENT_BINARY_DIR}/include/integrator/uniform")
+
+file(MAKE_DIRECTORY "${SOA_INCLUDE_GUIDED_DIR}")
+file(MAKE_DIRECTORY "${SOA_INCLUDE_UNIFORM_DIR}")
+
 # workitem
 # 2d
-add_custom_command (OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/include/integrator/uniform/uniform2d_workitem_soa.h
-    COMMAND soac ${CMAKE_CURRENT_SOURCE_DIR}/integrator/uniform/uniform2d_workitem.soa > ${CMAKE_CURRENT_BINARY_DIR}/include/integrator/uniform/uniform2d_workitem_soa.h
+add_custom_command (OUTPUT ${SOA_INCLUDE_UNIFORM_DIR}/uniform2d_workitem_soa.h
+    COMMAND soac ${CMAKE_CURRENT_SOURCE_DIR}/integrator/uniform/uniform2d_workitem.soa > ${SOA_INCLUDE_UNIFORM_DIR}/uniform2d_workitem_soa.h
     DEPENDS soac ${CMAKE_CURRENT_SOURCE_DIR}/integrator/uniform/uniform2d_workitem.soa)
 set (ELAINA_WORKITEM2D_SOA_GENERATED 
-	${CMAKE_CURRENT_BINARY_DIR}/include/integrator/uniform/uniform2d_workitem_soa.h
+	${SOA_INCLUDE_UNIFORM_DIR}/uniform2d_workitem_soa.h
 )
 add_custom_target (elaina_workitem2d_soa_generated DEPENDS ${ELAINA_WORKITEM2D_SOA_GENERATED})
 
 # 3d
-add_custom_command (OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/include/integrator/uniform/uniform3d_workitem_soa.h
-    COMMAND soac ${CMAKE_CURRENT_SOURCE_DIR}/integrator/uniform/uniform3d_workitem.soa > ${CMAKE_CURRENT_BINARY_DIR}/include/integrator/uniform/uniform3d_workitem_soa.h
+add_custom_command (OUTPUT ${SOA_INCLUDE_UNIFORM_DIR}/uniform3d_workitem_soa.h
+    COMMAND soac ${CMAKE_CURRENT_SOURCE_DIR}/integrator/uniform/uniform3d_workitem.soa > ${SOA_INCLUDE_UNIFORM_DIR}/uniform3d_workitem_soa.h
     DEPENDS soac ${CMAKE_CURRENT_SOURCE_DIR}/integrator/uniform/uniform3d_workitem.soa)
 set (ELAINA_WORKITEM3D_SOA_GENERATED 
-	${CMAKE_CURRENT_BINARY_DIR}/include/integrator/uniform/uniform3d_workitem_soa.h
+	${SOA_INCLUDE_UNIFORM_DIR}/uniform3d_workitem_soa.h
 )
 add_custom_target (elaina_workitem3d_soa_generated DEPENDS ${ELAINA_WORKITEM3D_SOA_GENERATED})
 
 # guideditem
 # 2d
-add_custom_command (OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/include/integrator/guided/guided2d_workitem_soa.h
-    COMMAND soac ${CMAKE_CURRENT_SOURCE_DIR}/integrator/guided/guided2d_workitem.soa > ${CMAKE_CURRENT_BINARY_DIR}/include/integrator/guided/guided2d_workitem_soa.h
+add_custom_command (OUTPUT ${SOA_INCLUDE_GUIDED_DIR}/guided2d_workitem_soa.h
+    COMMAND soac ${CMAKE_CURRENT_SOURCE_DIR}/integrator/guided/guided2d_workitem.soa > ${SOA_INCLUDE_GUIDED_DIR}/guided2d_workitem_soa.h
     DEPENDS soac ${CMAKE_CURRENT_SOURCE_DIR}/integrator/guided/guided2d_workitem.soa)
 set (ELAINA_GUIDED2D_SOA_GENERATED 
-	${CMAKE_CURRENT_BINARY_DIR}/include/integrator/guided/guided2d_workitem_soa.h
+	${SOA_INCLUDE_GUIDED_DIR}/guided2d_workitem_soa.h
 )
 add_custom_target (elaina_guided2d_soa_generated DEPENDS ${ELAINA_GUIDED2D_SOA_GENERATED})
 
 # 3d
-add_custom_command (OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/include/integrator/guided/guided3d_workitem_soa.h
-    COMMAND soac ${CMAKE_CURRENT_SOURCE_DIR}/integrator/guided/guided3d_workitem.soa > ${CMAKE_CURRENT_BINARY_DIR}/include/integrator/guided/guided3d_workitem_soa.h
+add_custom_command (OUTPUT ${SOA_INCLUDE_GUIDED_DIR}/guided3d_workitem_soa.h
+    COMMAND soac ${CMAKE_CURRENT_SOURCE_DIR}/integrator/guided/guided3d_workitem.soa > ${SOA_INCLUDE_GUIDED_DIR}/guided3d_workitem_soa.h
     DEPENDS soac ${CMAKE_CURRENT_SOURCE_DIR}/integrator/guided/guided3d_workitem.soa)
 set (ELAINA_GUIDED3D_SOA_GENERATED 
-	${CMAKE_CURRENT_BINARY_DIR}/include/integrator/guided/guided3d_workitem_soa.h
+	${SOA_INCLUDE_GUIDED_DIR}/guided3d_workitem_soa.h
 )
 add_custom_target (elaina_guided3d_soa_generated DEPENDS ${ELAINA_GUIDED3D_SOA_GENERATED})
 
