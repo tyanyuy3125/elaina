@@ -1050,6 +1050,7 @@ namespace detail
                 sampleId % integratorSettings.saveSppMetricsDuration == 0 &&
                 sampleId < integratorSettings.saveSppMetricsUntil)
             {
+                CUDA_SYNC_CHECK();
                 renderedImage->reset();
                 ParallelFor(
                     maxQueueSize, ELAINA_DEVICE_LAMBDA_GLOBAL(int pixelId) {
@@ -1064,6 +1065,7 @@ namespace detail
             if (integratorSettings.saveTimeMetricsDuration > 0 &&
                 sampleId % integratorSettings.saveTimeMetricsDuration == 0)
             {
+                CUDA_SYNC_CHECK();
                 renderedImage->reset();
                 ParallelFor(
                     maxQueueSize, ELAINA_DEVICE_LAMBDA_GLOBAL(int pixelId) {
@@ -1080,12 +1082,14 @@ namespace detail
             ELAINA_UPDATE_PROGRESS_BAR(sampleId + 1, integratorSettings.samplesPerPixel);
         }
 
+        CUDA_SYNC_CHECK();
         renderedImage->reset();
         ParallelFor(
             maxQueueSize, ELAINA_DEVICE_LAMBDA_GLOBAL(int pixelId) {
                 Color solution = pixelStateBuffer->solution[pixelId] / float(integratorSettings.samplesPerPixel);
                 renderedImage->put(Color4f(solution, 1.0f), pixelId);
             });
+        CUDA_SYNC_CHECK();
         ELAINA_DESTROY_PROGRESS_BAR();
     }
 
