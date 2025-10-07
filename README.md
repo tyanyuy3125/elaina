@@ -80,7 +80,7 @@ Part of the project's code is borrowed from the implementation of NPM ([Project 
   isbn = {979-8-4007-1540-2/2025/08},
   location = {Vancouver, BC, Canada},
   numpages = {12},
-  doi = {10.1145/3721238.3730713},
+  doi = {10.1145/3721238.3730593},
   publisher = {Association for Computing Machinery},
   address = {New York, NY, USA}
 }
